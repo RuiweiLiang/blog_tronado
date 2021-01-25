@@ -1,4 +1,4 @@
-import json
+import json,logging
 from datetime import datetime
 
 import tornado.web
@@ -9,6 +9,7 @@ from code.models import db
 
 class MainHandler(tornado.web.RequestHandler):
     def get(self):
+        logging.info('草拟吗')
         remote_ip = self.request.remote_ip
         cursor = db.cursor()
         cursor.execute("SELECT * from visit")
@@ -18,7 +19,7 @@ class MainHandler(tornado.web.RequestHandler):
         date = time_now.strftime("%Y-%m-%d")
         insert_time = time_now.strftime("%Y-%m-%d %H:%M:%S")
 
-        ip_date = cursor.execute("SELECT ip,date from visit_list where ip='{}'".format(remote_ip))
+        ip_date = cursor.execute("SELECT ip,date from visit_list where ip='{}' and date='{}'".format(remote_ip,date))
         if ip_date:
             pass
         else:
@@ -40,6 +41,7 @@ class MainHandler(tornado.web.RequestHandler):
 
 class UrlHandler(tornado.web.RequestHandler):
     def get(self, url):
+        logging.info(url)
         if url == 'index.html':
             remote_ip = self.request.remote_ip
             cursor = db.cursor()
@@ -65,7 +67,6 @@ class UrlHandler(tornado.web.RequestHandler):
             self.render("index.html", **{"visit_num": data[0], 'blog_num': data[1]})
             db.commit()
         else:
-
             self.render(url)
 
     def post(self):
@@ -80,6 +81,7 @@ class PageHandler(tornado.web.RequestHandler):
 
     def post(self):
         params = json.loads(self.request.body.decode('utf-8'))
+        logging.info(params)
         page = params.get('page',1)
         per_page = params.get('per_page',10)
         total_num = 0
@@ -100,4 +102,28 @@ class PageHandler(tornado.web.RequestHandler):
         cursor.execute("select count(text_id) from text")
         total_num = cursor.fetchone()
         self.write(json_encode({"total_num": total_num, "data": res_list}))
+        db.commit()
+
+
+class DetailHandler(tornado.web.RequestHandler):
+    def get(self, url):
+        self.render(url)
+
+    def post(self):
+        params = json.loads(self.request.body.decode('utf-8'))
+        logging.info(params)
+        text_id = params.get('text_id')
+        cursor = db.cursor()
+        sql = "SELECT * from text where text_id='{}';".format(text_id)
+        logging.info(sql)
+        cursor.execute(sql)
+        data = cursor.fetchone()
+        adict = {}
+        adict['title'] = data[0]
+        adict['text_id'] = data[2]
+        adict['text'] = data[1]
+        adict['create_user'] = data[4]
+        adict['type'] = data[5]
+        adict['create_time'] = data[3].strftime("%Y-%m-%d %H:%M")
+        self.write(json_encode({"data": adict}))
         db.commit()
