@@ -1,0 +1,14 @@
+.ck-editor__editable_inline {
+    height: 600px
+}
+
+.bottom_class {
+    margin : 10px 0px 15px 5px;
+    width: 100px;
+    height: 50px;
+    background-color: #66FF66;
+    border-radius:50px;
+    text-align:center;
+    line-height:45px;
+    font-size:17px;
+}

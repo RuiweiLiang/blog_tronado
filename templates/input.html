@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>新增文章</title>
+    <link rel="stylesheet" type="text/css" href="/wei/css/input.css">
+    <script src="/wei/js/util/ckeditor.js"></script>
+    <script src="/wei/js/util/jquery-3.3.1.js"></script>
+</head>
+<body>
+<textarea rows="2" cols="50" id="title_text" style="border-radius:30px;padding-top: 5px;padding-left: 5px;">
+我是标题
+</textarea>
+<div class="bottom_class">上传</div>
+<div name="content" id="editor"></div>
+<script>
+    ClassicEditor
+        .create(document.querySelector('#editor'), {
+                ckfinder: {
+                    uploadUrl: '/upload_img'
+                }
+            }
+        )
+        .then(editor => {
+            window.editor = editor;
+            data = editor.getData();
+            console.log(data);
+        })
+        .catch(error => {
+            console.error(error);
+        })
+
+    $(".bottom_class").click(function () {
+        var text = $(".ck-blurred").html()
+        var title = $("#title_text").text()
+        $.ajax({
+            type: 'POST',
+            url: "/upload_text",
+            dataType: 'json',
+            data: JSON.stringify({"title": title, "text": text}),
+            success: function (res) {
+                // 请求成功
+                console.log(res)
+                window.location.href = "/details.html?text_id="+res.text_id
+
+            },
+        });
+    });
+
+
+</script>
+</body>
+</html>
