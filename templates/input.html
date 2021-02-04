@@ -9,7 +9,7 @@
 </head>
 <body>
 <textarea rows="2" cols="50" id="title_text" style="border-radius:30px;padding-top: 5px;padding-left: 5px;">
-我是标题
+
 </textarea>
 <div class="bottom_class">上传</div>
 <div name="content" id="editor"></div>
@@ -32,7 +32,7 @@
 
     $(".bottom_class").click(function () {
         var text = $(".ck-blurred").html()
-        var title = $("#title_text").text()
+        var title = $("#title_text").val()
         $.ajax({
             type: 'POST',
             url: "/upload_text",

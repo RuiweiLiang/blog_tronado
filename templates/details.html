@@ -216,6 +216,7 @@
                 $("#data_time").text(data.create_time);
                 $("#text").append(data.text);
                 $('#text').find("p").css("padding", 0)
+                $('div.ck-widget__type-around').html("")
                 $(".types").text(data.type);
                 if (data.up != "") {
                     $('#up').attr('data-text_id', data.up)
