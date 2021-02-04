@@ -73,7 +73,7 @@ class PageHandler(tornado.web.RequestHandler):
         page = params.get('page', 1)
         per_page = params.get('per_page', 10)
 
-        data = db.text.find({})
+        data = db.text.find({}).sort("create_time",-1)
         total_num = data.count()
         res_list = []
         if data:
