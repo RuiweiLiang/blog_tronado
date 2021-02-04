@@ -14,27 +14,21 @@ class MainHandler(tornado.web.RequestHandler):
     def get(self):
         logging.info('草拟吗')
         remote_ip = self.request.remote_ip
-        cursor = db.cursor()
-        cursor.execute("SELECT * from visit")
-        data = cursor.fetchone()
+        data = db.visit.find_one({})
 
         time_now = datetime.now()
         date = time_now.strftime("%Y-%m-%d")
-        insert_time = time_now.strftime("%Y-%m-%d %H:%M:%S")
-
-        ip_date = cursor.execute("SELECT ip,date from visit_list where ip='{}' and date='{}'".format(remote_ip,date))
-        if ip_date:
+        visit_num = data['visit_num']
+        ip_date = db.visit_list.find({"ip":remote_ip,"date":date})
+        if ip_date.count() != 0:
             pass
         else:
-            # 添加访问列表记录
-            cursor.execute(
-                "insert into visit_list(ip,vist_time,date) values('{}','{}','{}')".format(remote_ip, insert_time, date))
-            # 添加访问人数
+            db.visit_list.insert({"ip":remote_ip,"vist_time":time_now,"date":date})
+            db.visit.update_one({"visit_num":data['visit_num']},{"visit_num":data['visit_num']+1})
+            visit_num+=1
 
-            cursor.execute("update visit set visit_num={}".format(str(data[0] + 1)))
 
-        self.render("index.html", **{"visit_num": data[0], 'blog_num': data[1]})
-        db.commit()
+        self.render("index.html", **{"visit_num": visit_num, 'blog_num': data['blog_num']})
 
     def post(self):
         params = json.loads(self.request.body.decode('utf-8'))
@@ -47,28 +41,20 @@ class UrlHandler(tornado.web.RequestHandler):
         logging.info(url)
         if url == 'index.html':
             remote_ip = self.request.remote_ip
-            cursor = db.cursor()
-            cursor.execute("SELECT * from visit")
-            data = cursor.fetchone()
+            data = db.visit.find_one({})
 
             time_now = datetime.now()
             date = time_now.strftime("%Y-%m-%d")
-            insert_time = time_now.strftime("%Y-%m-%d %H:%M:%S")
-
-            ip_date = cursor.execute("SELECT ip,date from visit_list where ip='{}'".format(remote_ip))
-            if ip_date:
+            visit_num = data['visit_num']
+            ip_date = db.visit_list.find({"ip": remote_ip, "date": date})
+            if ip_date.count() != 0:
                 pass
             else:
-                # 添加访问列表记录
-                cursor.execute(
-                    "insert into visit_list(ip,vist_time,date) values('{}','{}','{}')".format(remote_ip, insert_time,
-                                                                                              date))
-                # 添加访问人数
+                db.visit_list.insert({"ip": remote_ip, "vist_time": time_now, "date": date})
+                db.visit.update_one({"visit_num": data['visit_num']}, {"visit_num": data['visit_num'] + 1})
+                visit_num += 1
 
-                cursor.execute("update visit set visit_num={}".format(str(data[0] + 1)))
-
-            self.render("index.html", **{"visit_num": data[0], 'blog_num': data[1]})
-            db.commit()
+            self.render("index.html", **{"visit_num": visit_num, 'blog_num': data['blog_num']})
         else:
             self.render(url)
 
@@ -87,25 +73,20 @@ class PageHandler(tornado.web.RequestHandler):
         logging.info(params)
         page = params.get('page',1)
         per_page = params.get('per_page',10)
-        total_num = 0
-        cursor = db.cursor()
-        sql = "SELECT title,text_id,text,create_time from text limit {},{};".format(str((int(page) - 1)*per_page), str(per_page))
-        cursor.execute(sql)
-        data = cursor.fetchall()
+
+        data = db.text.find({})
+        total_num = data.count()
         res_list = []
         if data:
-            for i in data:
+            for i in data[(int(page) - 1)*per_page:per_page]:
                 adict = {}
-                adict['title'] = i[0]
-                adict['text_id'] = i[1]
-                adict['text'] = i[2][:30]+'...' if len(i[2]) > 30 else i[2]
-                adict['create_time'] = i[3].strftime("%Y-%m-%d %H:%M")
+                adict['title'] = i["title"]
+                adict['text_id'] = i["text_id"]
+                adict['text'] = i["text"][:30]+'...' if len(i["text"]) > 30 else i["text"]
+                adict['create_time'] = i["create_time"].strftime("%Y-%m-%d %H:%M")
                 res_list.append(adict)
 
-        cursor.execute("select count(text_id) from text")
-        total_num = cursor.fetchone()
         self.write(json_encode({"total_num": total_num, "data": res_list}))
-        db.commit()
 
 
 class DetailHandler(tornado.web.RequestHandler):
@@ -116,29 +97,25 @@ class DetailHandler(tornado.web.RequestHandler):
         params = json.loads(self.request.body.decode('utf-8'))
         logging.info(params)
         text_id = params.get('text_id')
-        cursor = db.cursor()
-        sql = "SELECT * from text where text_id='{}';".format(text_id)
-        logging.info(sql)
-        cursor.execute(sql)
-        data = cursor.fetchone()
+        data = db.text.find({"text_id":text_id})
 
         adict = {}
-        adict['title'] = data[0]
-        adict['text_id'] = data[2]
-        adict['text'] = data[1]
-        adict['create_user'] = data[4]
-        adict['type'] = data[5]
-        adict['create_time'] = data[3].strftime("%Y-%m-%d %H:%M")
+        adict['title'] = data["title"]
+        adict['text_id'] = data["text_id"]
+        adict['text'] = data["text"]
+        adict['create_user'] = data["create_user"]
+        adict['type'] = data["type"]
+        adict['create_time'] = data['create_time'].strftime("%Y-%m-%d %H:%M")
         adict['up'] = ""
         adict['next'] = ""
-        cursor.execute("select count(text_id) from text")
-        total = cursor.fetchone()
+
+
+        total = db.text.find({}).count()
         if adict['text_id'] != '1':
             adict['up'] = str(int(adict['text_id'])-1)
-        if adict['text_id'] != str(total[0]):
+        if adict['text_id'] != str(total):
             adict['next'] = str(int(adict['text_id'])+1)
         self.write(json_encode({"data": adict}))
-        db.commit()
 
 
 class UploadImgHandler(tornado.web.RequestHandler):
@@ -171,13 +148,6 @@ class UploadTextHandler(tornado.web.RequestHandler):
         title = params.get('title')
         text = params.get('text')
         time_now = datetime.now()
-        insert_time = time_now.strftime("%Y-%m-%d %H:%M:%S")
-        cursor = db.cursor()
-        sql =  "select count(text_id) from text"
-        logging.info(sql)
-        cursor.execute(sql)
-        total_text = cursor.fetchone()
-        sql = "insert into text(title,text,text_id,create_time) values('{}','{}','{}','{}')".format(title, text, str(total_text[0]+1), insert_time)
-        cursor.execute(sql)
+        total_text = db.text.find({}).count()
+        db.text.insert({"text":text,"title":title,"text_id":str(total_text+1),"create_time":time_now,"create_user":"wei","type":"Python"})
         self.write(json_encode({"text_id": str(total_text[0]+1)}))
-        db.commit()
