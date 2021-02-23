@@ -73,7 +73,7 @@ class PageHandler(tornado.web.RequestHandler):
         page = params.get('page', 1)
         per_page = params.get('per_page', 10)
 
-        data = db.text.find({}).sort("create_time",-1)
+        data = db.text.find({"status":"0"}).sort("create_time",-1)
         total_num = data.count()
         res_list = []
         if data:
@@ -108,11 +108,23 @@ class DetailHandler(tornado.web.RequestHandler):
         adict['up'] = ""
         adict['next'] = ""
 
-        total = db.text.find({}).count()
-        if adict['text_id'] != '1':
-            adict['up'] = str(int(adict['text_id']) - 1)
-        if adict['text_id'] != str(total):
-            adict['next'] = str(int(adict['text_id']) + 1)
+        all_text = db.text.find({'status':"0"})
+        up_cur = ""
+        for num, text in enumerate(all_text):
+            if text['text_id'] != text_id and up_cur == "":
+
+                adict['up'] = text['text_id']
+
+            elif text['text_id'] == text_id:
+                up_cur = '1'
+            elif text['text_id'] != text_id and up_cur == '1':
+                adict['next'] = text['text_id']
+                break
+
+        # if adict['text_id'] != '1':
+        #     adict['up'] = str(int(adict['text_id']) - 1)
+        # if adict['text_id'] != str(total):
+        #     adict['next'] = str(int(adict['text_id']) + 1)
         self.write(json_encode({"data": adict}))
 
 
@@ -148,5 +160,5 @@ class UploadTextHandler(tornado.web.RequestHandler):
         time_now = datetime.now()
         total_text = db.text.find({}).count()
         db.text.insert({"text": text, "title": title, "text_id": str(total_text + 1), "create_time": time_now,
-                        "create_user": "wei", "type": "Python"})
+                        "create_user": "wei", "type": "Python",'status':"0"})
         self.write(json_encode({"text_id": str(total_text + 1)}))

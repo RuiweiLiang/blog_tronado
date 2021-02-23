@@ -25,7 +25,7 @@ if __name__ == "__main__":
 #     app = make_app()
 #     app.listen(8080, address="0.0.0.0", xheaders=True)
 #     tornado.ioloop.IOLoop.current().start()
-    tornado.options.define("port", default="8080", help="run on the port", type=int)  # 设置全局变量port
+    tornado.options.define("port", default="8000", help="run on the port", type=int)  # 设置全局变量port
     tornado.options.parse_command_line()  # 启动应用前面的设置项目
     [i.setFormatter(LogFormatter()) for i in logging.getLogger().handlers]
     http_server = tornado.httpserver.HTTPServer(make_app())
